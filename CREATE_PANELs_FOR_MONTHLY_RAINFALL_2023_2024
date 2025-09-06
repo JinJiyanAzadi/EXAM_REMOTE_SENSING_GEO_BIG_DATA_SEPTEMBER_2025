@@ -1,0 +1,52 @@
+
+
+import os
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# --------------------------
+# PARAMETERS
+# --------------------------
+png_folder = r"C:\Users\norma\OneDrive\Desktop\EXAM\PLOTS_EXAM"
+output_folder = png_folder  # save panels in the same folder
+years = [2023, 2024]
+months = range(1, 13)
+
+# --------------------------
+# FUNCTION TO CREATE PANELS
+# --------------------------
+def create_png_panel(year):
+    # Load all month PNGs
+    images = []
+    for month in months:
+        png_name = f"Rainfall_{year}_{month:02d}.png"
+        png_path = os.path.join(png_folder, png_name)
+        if os.path.exists(png_path):
+            img = Image.open(png_path)
+            images.append(img)
+        else:
+            print(f"Warning: {png_name} not found.")
+            # Create blank placeholder
+            images.append(Image.new('RGB', (600, 400), color='white'))
+
+    # Create figure with 3x4 grid
+    fig, axes = plt.subplots(3, 4, figsize=(20, 12))
+    axes = axes.flatten()
+    
+    for i, ax in enumerate(axes):
+        ax.imshow(images[i])
+        ax.set_title(f"{year}-{i+1:02d}", fontsize=10)
+        ax.axis('off')
+    
+    # Save the panel
+    output_path = os.path.join(output_folder, f"Rainfall_{year}_Panel.png")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close(fig)
+    print(f"Saved panel for {year} at {output_path}")
+
+# --------------------------
+# CREATE PANELS FOR ALL YEARS
+# --------------------------
+for yr in years:
+    create_png_panel(yr)
