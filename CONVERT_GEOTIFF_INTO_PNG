@@ -1,0 +1,92 @@
+
+
+import os
+import rasterio
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+# -------------------------------------------------------------------
+# INPUT AND OUTPUT FOLDERS
+# -------------------------------------------------------------------
+tiff_folder = r"C:\Users\norma\OneDrive\Desktop\EXAM\GEOTIFF"
+png_folder = r"C:\Users\norma\OneDrive\Desktop\EXAM\PLOTS_EXAM"
+
+if not os.path.exists(png_folder):
+    os.makedirs(png_folder)
+
+# -------------------------------------------------------------------
+# DEFINE CUSTOM COLOR MAPS TO MATCH GEE
+# -------------------------------------------------------------------
+rain_cmap = LinearSegmentedColormap.from_list('rain', ['white', 'blue', 'darkblue'])
+dev_cmap = LinearSegmentedColormap.from_list('dev', ['red', 'white', 'blue'])
+
+# VISUALIZATION PARAMETERS
+rain_min, rain_max = 0, 300
+dev_min, dev_max = -50, 50
+
+# -------------------------------------------------------------------
+# HELPER FUNCTION TO PLOT TIFF WITH LEGEND
+# -------------------------------------------------------------------
+def plot_tiff_with_legend(tiff_path, png_path, vmin, vmax, cmap, title_text):
+    with rasterio.open(tiff_path) as src:
+        data = src.read(1)
+        data = np.where(np.isnan(data), vmin, data)  # replace NaN for plotting
+
+    fig, ax = plt.subplots(figsize=(8,6))
+    im = ax.imshow(data, cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.axis('off')
+
+    # Title above the color bar
+    plt.title(title_text, fontsize=14, fontweight='bold', pad=10)
+
+    # Color bar below the image with min/max labels
+    cbar = plt.colorbar(im, ax=ax, fraction=0.05, pad=0.04, orientation='horizontal')
+    cbar.set_label(title_text, fontsize=12)
+    cbar.set_ticks([vmin, vmax])
+    cbar.ax.set_xticklabels([str(vmin), str(vmax)])
+
+    plt.tight_layout()
+    plt.savefig(png_path, dpi=200)
+    plt.close()
+
+# -------------------------------------------------------------------
+# LOOP OVER ALL TIFF FILES
+# -------------------------------------------------------------------
+for filename in os.listdir(tiff_folder):
+    if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):
+        tiff_path = os.path.join(tiff_folder, filename)
+        png_name = os.path.splitext(filename)[0] + '.png'
+        png_path = os.path.join(png_folder, png_name)
+
+        # Decide palette and title based on file name
+        if 'Deviation' in filename or 'dev' in filename.lower():
+            cmap = dev_cmap
+            vmin = dev_min
+            vmax = dev_max
+            # Extract year/month from file name if possible
+            if '_' in filename:
+                parts = filename.split('_')
+                if len(parts) >= 3:
+                    title = f'Rainfall Deviation {parts[1]}-{parts[2]} (%)'
+                else:
+                    title = 'Rainfall Deviation (%)'
+            else:
+                title = 'Rainfall Deviation (%)'
+        else:
+            cmap = rain_cmap
+            vmin = rain_min
+            vmax = rain_max
+            if '_' in filename:
+                parts = filename.split('_')
+                if len(parts) >= 3:
+                    title = f'Rainfall {parts[1]}-{parts[2]} (mm)'
+                else:
+                    title = 'Rainfall (mm)'
+            else:
+                title = 'Rainfall (mm)'
+
+        # Plot and save
+        plot_tiff_with_legend(tiff_path, png_path, vmin, vmax, cmap, title)
+
+print("All TIFF files converted to PNGs with legends in:", png_folder)
