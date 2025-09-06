@@ -1,0 +1,55 @@
+
+import os
+import pandas as pd
+
+# ------------------------------
+# PATHS
+# ------------------------------
+csv_folder = r"C:\Users\norma\OneDrive\Desktop\EXAM\CSV"
+
+# Monthly rainfall totals CSV
+rainfall_csv_path = os.path.join(csv_folder, "Monthly_Rainfall_2023_2024.csv")
+
+# Output CSV
+merged_csv_path = os.path.join(csv_folder, "Monthly_Rainfall_with_Deviation_2023_2024.csv")
+
+# ------------------------------
+# READ MONTHLY RAINFALL
+# ------------------------------
+rainfall_df = pd.read_csv(rainfall_csv_path)
+rainfall_df.columns = rainfall_df.columns.str.strip().str.lower()  # normalize headers
+rainfall_df['unit_rainfall'] = 'mm'
+
+# ------------------------------
+# READ DEVIATION FILES AND ADD YEAR COLUMN
+# ------------------------------
+deviation_files = [f"Rainfall_Dev_{year}.csv" for year in [2023, 2024]]
+deviation_dfs = []
+
+for dev_file in deviation_files:
+    dev_path = os.path.join(csv_folder, dev_file)
+    if os.path.exists(dev_path):
+        df = pd.read_csv(dev_path)
+        df.columns = df.columns.str.strip().str.lower()
+        # Add year column from filename
+        year = int(dev_file.split('_')[-1].split('.')[0])
+        df['year'] = year
+        df.rename(columns={'precipitation': 'deviation_percent'}, inplace=True)
+        df['unit_deviation'] = '%'
+        deviation_dfs.append(df)
+    else:
+        print(f"Missing deviation file: {dev_file}")
+
+# Concatenate all deviations
+deviation_df = pd.concat(deviation_dfs, ignore_index=True)
+
+# ------------------------------
+# MERGE RAINFALL AND DEVIATION
+# ------------------------------
+merged_df = pd.merge(rainfall_df, deviation_df, on=['year', 'month'], how='left')
+
+# ------------------------------
+# SAVE MERGED CSV
+# ------------------------------
+merged_df.to_csv(merged_csv_path, index=False)
+print(f"Saved merged CSV with deviations: {merged_csv_path}")
